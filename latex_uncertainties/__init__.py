@@ -37,7 +37,7 @@ def latex_form(value_in, error_in, **kwargs):
         error *= (10 ** dp)
         output += '({:.{prec}f})'.format(error, prec=0)
     if power != 0:
-        output += r'\cdot 10^{' + str(power) + '}'
+        output = r'$' + output + r'\cdot 10^{' + str(power) + '}$'
     return output
 
 
@@ -62,7 +62,7 @@ def get_power(value_in, max_power, min_power):
     """
     Find power to use in standard form (if any).
     """
-    if value_in == 0:
+    if value_in == 0 or value_in == np.inf:
         return 0
     else:
         power = int(np.log10(abs(value_in)))
