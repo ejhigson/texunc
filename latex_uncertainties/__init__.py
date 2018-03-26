@@ -8,6 +8,7 @@ Convert values and numerical uncertainties into strings of format
 where number in brackets is error on the final digit.
 """
 
+import copy
 import numpy as np
 
 
@@ -17,9 +18,10 @@ def latex_form(value_in, error_in, **kwargs):
     1.234(5) \\cdot 10^{-6}
     where number in brackets is error on the final digit.
     """
-    max_power = kwargs.pop('max_power', 3)
-    min_power = kwargs.pop('min_power', -3)
-    min_dp = kwargs.pop('min_dp', 4)
+    max_power = kwargs.pop('max_power', 4)
+    min_power = kwargs.pop('min_power', -4)
+    min_dp = kwargs.pop('min_dp', 1)
+    min_dp_no_error = kwargs.pop('min_dp_no_error', 4)
     if value_in is None or np.isnan(value_in):
         return str(value_in) + '(' + str(error_in) + ')'
     # Work out power and adjust error and values
@@ -27,12 +29,13 @@ def latex_form(value_in, error_in, **kwargs):
     value = value_in / (10 ** power)
     if error_in is None or np.isnan(error_in):
         error = error_in
+        min_dp = min_dp_no_error
     else:
         error = error_in / (10 ** power)
     # Work out decimal places
     dp = int(get_dp(error, min_dp))
     # make output
-    output = '{:.{prec}f}'.format(value, prec=dp)
+    output = '{:,.{prec}f}'.format(value, prec=dp)
     if (error is not None) and ~np.isnan(error):
         error *= (10 ** dp)
         output += '({:.{prec}f})'.format(error, prec=0)
@@ -53,6 +56,60 @@ def latex_format_df(df, **kwargs):
                 .apply(pandas_latex_form_apply, axis=1, **kwargs).unstack())
     return latex_df.reindex(order)
 
+
+def print_latex_df(df, str_map=None, caption_above=True, **kwargs):
+    """
+    Formats df and prints it out (can copy paste into tex file).
+    """
+    if str_map is None:
+        str_map = {'mathrm{log}': 'log',
+                   'implementation': 'Implementation',
+                   'efficiency gain': 'Efficiency gain',
+                   'std': r'\std{}',
+                   'None': '',
+                   '.0000': ''}
+    df = latex_format_df(df, **kwargs)
+    df_str = df.to_latex(escape=False)
+    for key, value in str_map.items():
+        df_str = df_str.replace(key, value)
+    print()  # print a new line
+    print(r'\begin{table*}')
+    print(r'\centering')
+    if caption_above:
+        print(r'\caption{Caption here.}\label{tab:tbc}')
+        print(df_str + r'\end{table*}')
+    else:
+        print(df_str + r'\caption{Caption here.}\label{tab:tbc}')
+        print(r'\end{table*}')
+
+
+def paper_eff_df(eff_df):
+    """
+    Transform efficiency gain data frames output by nestcheck into the format
+    used in the dns paper.
+    """
+    row_name_map = {'std efficiency gain': 'Efficiency gain',
+                    'dynamic ': ''}
+    comb_df = copy.deepcopy(eff_df)
+    comb_df = comb_df.loc[comb_df.index.get_level_values(0) != 'mean']
+    # Show mean number of samples and likelihood calls instead of st dev
+    means = (eff_df.xs('mean', level='calculation type')
+             .xs('value', level='result type'))
+    for col in ['samples', 'likelihood calls']:
+        try:
+            col_vals = []
+            for val in means[col].values:
+                col_vals += [np.rint(val), np.nan]
+            col_vals += [np.nan] * (comb_df.shape[0] - len(col_vals))
+            comb_df[col] = col_vals
+        except KeyError:
+            pass
+    row_names = (comb_df.index.get_level_values(0).astype(str) + ' ' +
+                 comb_df.index.get_level_values(1).astype(str))
+    for key, value in row_name_map.items():
+        row_names = row_names.str.replace(key, value)
+    comb_df.index = [row_names, comb_df.index.get_level_values(2)]
+    return comb_df
 
 # Helper functions
 # ----------------
@@ -89,6 +146,10 @@ def get_dp(error, dp_min):
         # have a float error that is less than 1 in magnitude:
         # find dp needed for error to be >= to 1
         dp_given_error = int(np.ceil(abs(np.log10(error))))
+        # Reduce dp by 1 when the error in brackets rounds up to 10 so it is
+        # instead shown as 1
+        if np.rint(error * (10 ** dp_given_error)) == 10:
+            dp_given_error -= 1
         return max(dp_min, dp_given_error)
 
 
