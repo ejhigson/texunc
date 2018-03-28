@@ -21,7 +21,7 @@ def latex_form(value_in, error_in, **kwargs):
     max_power = kwargs.pop('max_power', 4)
     min_power = kwargs.pop('min_power', -4)
     min_dp = kwargs.pop('min_dp', 1)
-    min_dp_no_error = kwargs.pop('min_dp_no_error', 4)
+    min_dp_no_error = kwargs.pop('min_dp_no_error', 1)
     if value_in is None or np.isnan(value_in):
         return str(value_in) + '(' + str(error_in) + ')'
     # Work out power and adjust error and values
@@ -29,7 +29,10 @@ def latex_form(value_in, error_in, **kwargs):
     value = value_in / (10 ** power)
     if error_in is None or np.isnan(error_in):
         error = error_in
-        min_dp = min_dp_no_error
+        if power == 0 and value_in == np.rint(value_in):
+            min_dp = 0
+        else:
+            min_dp = min_dp_no_error
     else:
         error = error_in / (10 ** power)
     # Work out decimal places
@@ -99,7 +102,7 @@ def paper_eff_df(eff_df):
         try:
             col_vals = []
             for val in means[col].values:
-                col_vals += [np.rint(val), np.nan]
+                col_vals += [int(np.rint(val)), np.nan]
             col_vals += [np.nan] * (comb_df.shape[0] - len(col_vals))
             comb_df[col] = col_vals
         except KeyError:
@@ -162,8 +165,9 @@ def pandas_latex_form_apply(series, **kwargs):
     assert series.shape == (1,) or series.shape == (2,)
     if series.shape == (1,):
         assert series.index.values[0] == 'value'
-        return latex_form(series.loc['value'], None, **kwargs)
+        str_out = latex_form(series.loc['value'], None, **kwargs)
     if series.shape == (2,):
         assert np.all(series.index.values == ['value', 'uncertainty'])
-        return latex_form(series.loc['value'], series.loc['uncertainty'],
-                          **kwargs)
+        str_out = latex_form(series.loc['value'], series.loc['uncertainty'],
+                             **kwargs)
+    return str_out
