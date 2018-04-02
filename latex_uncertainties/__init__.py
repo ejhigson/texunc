@@ -80,36 +80,6 @@ def print_latex_df(df, str_map=None, caption_above=True, **kwargs):
         print(r'\end{table*}')
 
 
-def paper_eff_df(eff_df):
-    """
-    Transform efficiency gain data frames output by nestcheck into the format
-    used in the dns paper.
-    """
-    comb_df = copy.deepcopy(eff_df)
-    comb_df = comb_df.loc[comb_df.index.get_level_values(0) != 'mean']
-    # Show mean number of samples and likelihood calls instead of st dev
-    means = (eff_df.xs('mean', level='calculation type')
-             .xs('value', level='result type'))
-    for col in ['samples', 'likelihood calls']:
-        try:
-            col_vals = []
-            for val in means[col].values:
-                col_vals += [int(np.rint(val)), np.nan]
-            col_vals += [np.nan] * (comb_df.shape[0] - len(col_vals))
-            comb_df[col] = col_vals
-        except KeyError:
-            pass
-    row_name_map = {'std efficiency gain': 'Efficiency gain',
-                    'St.Dev. efficiency gain': 'Efficiency gain',
-                    'dynamic ': '',
-                    'std': 'St.Dev.'}
-    row_names = (comb_df.index.get_level_values(0).astype(str) + ' ' +
-                 comb_df.index.get_level_values(1).astype(str))
-    for key, value in row_name_map.items():
-        row_names = row_names.str.replace(key, value)
-    comb_df.index = [row_names, comb_df.index.get_level_values(2)]
-    return comb_df
-
 # Helper functions
 # ----------------
 
