@@ -64,17 +64,11 @@ def print_latex_df(df, str_map=None, caption_above=True, **kwargs):
     """
     Formats df and prints it out (can copy paste into tex file).
     """
-    if str_map is None:
-        str_map = {'mathrm{log}': 'log',
-                   'implementation': 'Implementation',
-                   'efficiency gain': 'Efficiency gain',
-                   'std': r'\std{}',
-                   'None': '',
-                   '.0000': ''}
     df = latex_format_df(df, **kwargs)
     df_str = df.to_latex(escape=False)
-    for key, value in str_map.items():
-        df_str = df_str.replace(key, value)
+    if str_map is not None:
+        for key, value in str_map.items():
+            df_str = df_str.replace(key, value)
     print()  # print a new line
     print(r'\begin{table*}')
     print(r'\centering')
@@ -91,8 +85,6 @@ def paper_eff_df(eff_df):
     Transform efficiency gain data frames output by nestcheck into the format
     used in the dns paper.
     """
-    row_name_map = {'std efficiency gain': 'Efficiency gain',
-                    'dynamic ': ''}
     comb_df = copy.deepcopy(eff_df)
     comb_df = comb_df.loc[comb_df.index.get_level_values(0) != 'mean']
     # Show mean number of samples and likelihood calls instead of st dev
@@ -107,6 +99,10 @@ def paper_eff_df(eff_df):
             comb_df[col] = col_vals
         except KeyError:
             pass
+    row_name_map = {'std efficiency gain': 'Efficiency gain',
+                    'St.Dev. efficiency gain': 'Efficiency gain',
+                    'dynamic ': '',
+                    'std': 'St.Dev.'}
     row_names = (comb_df.index.get_level_values(0).astype(str) + ' ' +
                  comb_df.index.get_level_values(1).astype(str))
     for key, value in row_name_map.items():
