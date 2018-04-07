@@ -4,11 +4,9 @@ Convert values and numerical uncertainties into strings of format
 
 1.234(5) \\cdot 10^{-6}
 
-
 where number in brackets is error on the final digit.
 """
 
-import copy
 import numpy as np
 
 
@@ -19,9 +17,10 @@ def latex_form(value_in, error_in, **kwargs):
     where number in brackets is error on the final digit.
     """
     max_power = kwargs.pop('max_power', 4)
-    min_power = kwargs.pop('min_power', -4)
+    min_power = kwargs.pop('min_power', -max_power)
     min_dp = kwargs.pop('min_dp', 1)
-    min_dp_no_error = kwargs.pop('min_dp_no_error', 1)
+    min_dp_no_error = kwargs.pop('min_dp_no_error', min_dp)
+    zero_dp_ints = kwargs.pop('zero_dp_ints', True)
     if value_in is None or np.isnan(value_in):
         return str(value_in) + '(' + str(error_in) + ')'
     # Work out power and adjust error and values
@@ -29,7 +28,7 @@ def latex_form(value_in, error_in, **kwargs):
     value = value_in / (10 ** power)
     if error_in is None or np.isnan(error_in):
         error = error_in
-        if power == 0 and value_in == np.rint(value_in):
+        if power == 0 and value_in == np.rint(value_in) and zero_dp_ints:
             min_dp = 0
         else:
             min_dp = min_dp_no_error
@@ -64,20 +63,34 @@ def print_latex_df(df, str_map=None, caption_above=True, **kwargs):
     """
     Formats df and prints it out (can copy paste into tex file).
     """
+    star_table = kwargs.pop('star_table', False)
+    caption = kwargs.pop('caption', 'Caption here.')
+    label = kwargs.pop('label', 'tab:tbc')
+    # Get latex df as string
     df = latex_format_df(df, **kwargs)
+    # stop to_latex adding row for index names
+    df.index.names = [None] * len(df.index.names)
     df_str = df.to_latex(escape=False)
+    # format all the strings we need
     if str_map is not None:
         for key, value in str_map.items():
             df_str = df_str.replace(key, value)
+    table_str = r'table'
+    if star_table:
+        table_str += r'*'
+    caption_str = r'\caption{' + caption + r'}\label{' + label + r'}'
+    # do the printing
+    # ---------------
     print()  # print a new line
-    print(r'\begin{table*}')
+    print(r'\begin{' + table_str + '}')
     print(r'\centering')
     if caption_above:
-        print(r'\caption{Caption here.}\label{tab:tbc}')
+        print(caption_str)
         print(df_str + r'\end{table*}')
     else:
-        print(df_str + r'\caption{Caption here.}\label{tab:tbc}')
-        print(r'\end{table*}')
+        print(df_str + caption_str)
+        print(r'\end{' + table_str + '}')
+    return df
 
 
 # Helper functions
