@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""latex_uncertainties setup."""
+"""texunc setup."""
 import setuptools
 
 
-setuptools.setup(name='latex_uncertainties',
+setuptools.setup(name='texunc',
                  version='0.0.0',
                  author='Edward Higson',
-                 url='https://github.com/ejhigson/latex_uncertainties',
+                 url='https://github.com/ejhigson/texunc',
                  install_requires=['numpy'],
-                 packages=['latex_uncertainties'])
+                 packages=['texunc'])
