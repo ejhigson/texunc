@@ -115,38 +115,64 @@ def get_dp(error, dp_min):
     """
     Find how many decimal places should be shown given the size of the
     numberical uncertainty.
+
+    This is the number of decimal places which is needed to have the
+    error on the final digit (rounded to 1 sigificant figure) in the range 1 to
+    9. If this number is less than dp_min, dp_min is used.
+
+    Parameters
+    ----------
+    error: float
+    dp_min: int, None or NaN
+
+    Returns
+    -------
+    dp_to_use: int
     """
-    if error is None:
+    if error is None or np.isnan(error) or error == 0:
         return dp_min
-    elif np.isnan(error):
+    if error >= 1:
         return dp_min
-    elif error == 0:
-        return dp_min
-    elif error >= 1:
-        return dp_min
-    else:
-        # have a float error that is less than 1 in magnitude:
-        # find dp needed for error to be >= to 1
-        dp_given_error = int(np.ceil(abs(np.log10(error))))
-        # Reduce dp by 1 when the error in brackets rounds up to 10 so it is
-        # instead shown as 1
-        if np.rint(error * (10 ** dp_given_error)) == 10:
-            dp_given_error -= 1
-        return max(dp_min, dp_given_error)
+    # have a float error that is less than 1 in magnitude:
+    # find dp needed for error to be >= to 1
+    dp_given_error = int(np.ceil(abs(np.log10(error))))
+    # Reduce dp by 1 when the error in brackets rounds up to 10 so it is
+    # instead shown as 1
+    if np.rint(error * (10 ** dp_given_error)) == 10:
+        dp_given_error -= 1
+    return max(dp_min, dp_given_error)
 
 
 def pandas_latex_form_apply(series, **kwargs):
     """
-    Helper function for applying latex_form to pandas multiindex.
+    Helper function for applying latex_form to pandas multiindex. This can be
+    applied to each row and column except 'result type' to get the value and
+    uncertainties as a string using latex_form. Works with some missing
+    uncertainties.
+
+    Series must be length 1 with index.values=['value'] or length 2 with
+    index.values=['value', 'uncertainty'] (in any order). If it does not
+    contain an uncertainty then None is used.
+
+    Parameters
+    ----------
+    series: pandas Series
+    kwargs: dict
+        Keyword args for latex_form.
+
+    Returns
+    -------
+    str_out: string
+        See latex_form docstring for more details.
     """
-    # assert np.all(series.index.categories == pd.Index(['value',
-    #                                                    'uncertainty']))
     assert series.shape == (1,) or series.shape == (2,)
     if series.shape == (1,):
         assert series.index.values[0] == 'value'
         str_out = latex_form(series.loc['value'], None, **kwargs)
     if series.shape == (2,):
-        assert np.all(series.index.values == ['value', 'uncertainty'])
+        inds = sorted(series.index.values)
+        assert inds[0] == 'uncertainty' and inds[1] == 'value', (
+            str(series.index.values))
         str_out = latex_form(series.loc['value'], series.loc['uncertainty'],
                              **kwargs)
     return str_out
