@@ -104,7 +104,7 @@ def get_power(value_in, max_power, min_power):
     if value_in == 0 or value_in == np.inf:
         return 0
     else:
-        power = int(np.log10(abs(value_in)))
+        power = int(np.floor(np.log10(abs(value_in))))
     if max_power >= power >= min_power:
         return 0
     else:
