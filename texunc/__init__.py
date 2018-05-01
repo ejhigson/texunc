@@ -8,5 +8,5 @@ where number in brackets is error on the final digit, and apply this to pandas
 dataframes.
 """
 
-from uncertainty_formatting import latex_form
-from dataframe_funcs import latex_format_df, print_latex_df
+from texunc.uncertainty_formatting import latex_form
+from texunc.dataframe_funcs import latex_format_df, print_latex_df
